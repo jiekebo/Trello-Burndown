@@ -1,0 +1,6 @@
+bower_components
+node_modules
+lib.js
+main.js
+main.js.map
+/public/main.coffee
