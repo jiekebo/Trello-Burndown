@@ -34,30 +34,32 @@ $("#getLists").click ->
   )
   return
 
-$("#getCards").click ->
+deferredPerCardUpdate = (cards) ->
+  for card in cards
+    deferred = Trello.rest(
+      "get"
+      "/cards/#{card.id}/actions"
+      {filter : "updateCard:idList"}
+      (actions) ->
+        console.log card.id
+    )
+    deferreds.push deferred
+  $.when.apply($, deferreds).then(() -> calculateBurndown(allCards, sprintCards,doneCards))
+
+calculateBurndown = (cards) ->
+  for card in cards
+    console.log card
+
+getCards = ->
   Trello.rest(
     "get"
     "/boards/#{BOARD}/cards"
-    (cards) ->
-      sprintCards = []
-      doneCards = []
-      deferreds = []
-      for card in cards
-        deferred = Trello.rest(
-          "get"
-          "/cards/#{card.id}/actions"
-          {filter : "updateCard:idList"}
-          (actions) ->
-            for update in actions
-              if update.data.listBefore.id == SPRINT1_LIST
-                sprintCards.push card
-              if update.data.listAfter.id == DONE_LIST
-                doneCards.push card
-        )
-        deferreds.push deferred
-      $.when.apply($, deferreds).then(() ->
-        console.log sprintCards
-        console.log doneCards
-      )
+    {actions : "updateCard:idList"}
+    calculateBurndown
     handleError
   )
+
+$("#getCards").click ->
+  getCards()
+  
+getCards()
