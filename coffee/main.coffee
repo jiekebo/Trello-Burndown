@@ -1,32 +1,63 @@
-onAuthorizea = ->
-  console.log "testificate"
+BOARD = "5319d6c74a5040bb15f76855"
 
-traverseCards = (cards) ->
-  for card in cards
-    Trello.rest(
-      "get"
-      "/cards/#{card.id}/actions"
-      {key: "eeada88214aeb9ca018fc6629e8cf045", token : "5eaab3507707e5cc4fc0d8f051de494c26e986127cdf2908cdfd48d3b7ee7432", filter : "updateCard:idList"}
-      (test) ->
-        for update in test
-          if update.data.listBefore.id == "534d1b74025e989618da5f9a"
-            console.log test
-    )
-    console.log card.id
+SPRINT1_LIST = "534d1b74025e989618da5f9a"
+DONE_LIST = "5319d6c74a5040bb15f76858"
+
+AUTORIZED = false
 
 handleError = ->
   console.log "Error"
-
+  
 Trello.authorize
-  interactive:false,
+  interactive: true,
+  expiration: "never",
+  persist: true,
+  name: "your project name",
+  type: "popup",
+  scope: { read : true, write : true },
   success: ->
-    Trello.rest(
-      "get"
-      "/boards/5319d6c74a5040bb15f76855/cards",
-      {key: "eeada88214aeb9ca018fc6629e8cf045", token : "5eaab3507707e5cc4fc0d8f051de494c26e986127cdf2908cdfd48d3b7ee7432"}
-      traverseCards
-      handleError
-    )
+    AUTORIZED = true
+    
   error: ->
     console.log "error!"
   scope: { read: true }
+
+$("#getLists").click ->
+  Trello.rest(
+    "get"
+    "/boards/#{BOARD}/lists"
+    (boards) ->
+      for board in boards
+        console.log board
+    () -> 
+      console.log "Error occurred"
+  )
+  return
+
+$("#getCards").click ->
+  Trello.rest(
+    "get"
+    "/boards/#{BOARD}/cards"
+    (cards) ->
+      sprintCards = []
+      doneCards = []
+      deferreds = []
+      for card in cards
+        deferred = Trello.rest(
+          "get"
+          "/cards/#{card.id}/actions"
+          {filter : "updateCard:idList"}
+          (actions) ->
+            for update in actions
+              if update.data.listBefore.id == SPRINT1_LIST
+                sprintCards.push card
+              if update.data.listAfter.id == DONE_LIST
+                doneCards.push card
+        )
+        deferreds.push deferred
+      $.when.apply($, deferreds).then(() ->
+        console.log sprintCards
+        console.log doneCards
+      )
+    handleError
+  )
