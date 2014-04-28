@@ -25,48 +25,45 @@ Trello.authorize
 handleError = ->
   console.log "Error"
 
+idealBurndown = (tasks, days, x) ->
+  tasks - tasks/(days-1) * x
+
 drawGraph = (data) ->
-  margin =
-    top: 20
-    right: 20
-    bottom: 30
-    left: 50
+  m = [80, 80, 80, 80]
+  w = 1000 - m[1] - m[3] # width
+  h = 700 - m[0] - m[2] # height
 
-  width = 960 - margin.left - margin.right
-  height = 500 - margin.top - margin.bottom
-  parseDate = d3.time.format("%d-%b-%y").parse
-  x = d3.time.scale().range([0, width])
-  y = d3.scale.linear().range([height, 0])
-  xAxis = d3.svg.axis().scale(x).orient("bottom")
-  yAxis = d3.svg.axis().scale(y).orient("left")
-  area = d3.svg.area().x((d) -> x d.date).y0(height).y1((d) -> y d.close)
-  svg = d3.select("body")
-    .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+  # X scale will fit all values from data[] within pixels 0-w
+  x = d3.scale.linear().domain([0, data.length]).range([0, w])
 
-  x.domain d3.extent(data, (d) -> d.id)
-  y.domain [0, d3.max(data, (d) -> d.total)]
+  # Y scale will fit values from 0-10 within pixels h-0 (Note the inverted domain for the y-scale: bigger is up!)
+  y = d3.scale.linear().domain([0, d3.max(data)]).range([h, 0])
 
-  svg.append("path")
-    .datum(data)
-    .attr("class", "area")
-    .attr("d", area)
-  svg.append("g")
-    .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
-    .call(xAxis)
-  svg.append("g")
-    .attr("class", "y axis")
-    .call(yAxis)
-    .append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", 6)
-    .attr("dy", ".71em")
-    .style("text-anchor", "end")
-    .text("Price ($)")
+  line = d3.svg.line()
+    .interpolate('basis')
+    .x((d, i) -> x(i))
+    .y((d) -> y(d))
+
+  idealData = d3.range(data.length).map(
+    (d) -> idealBurndown(data[0], data.length, d)
+  )
+
+  graph = d3.select("#graph")
+    .append("svg:svg")
+    .attr("width", w + m[1] + m[3])
+    .attr("height", h + m[0] + m[2])
+    .append("svg:g")
+    .attr("transform", "translate(" + m[3] + "," + m[0] + ")")
+  
+  xAxis = d3.svg.axis().scale(x).tickSize(-h).tickSubdivide(true)
+  graph.append("svg:g").attr("class", "x axis").attr("transform", "translate(0," + h + ")").call(xAxis)
+  
+  yAxisLeft = d3.svg.axis().scale(y).ticks(4).orient("left")
+  graph.append("svg:g").attr("class", "y axis").attr("transform", "translate(-25,0)").call(yAxisLeft)
+  
+  graph.append("svg:path").attr("d", line(data))
+
+  graph.append("svg:path").attr("d", line(idealData))
 
 
 $("#getLists").click ->
@@ -137,22 +134,18 @@ calculateBurndown = (cards) ->
         if date <= new Date(action.date) <= nextDate
           if action.data.listAfter.id == SPRINT1_LIST
             days[i].added += 1
-
-    for id, card of addedCards
-      for action in card.actions
-        if date <= new Date(action.date) <= nextDate
           if action.data.listAfter.id == DONE_LIST
             days[i].addedDone += 1
-
     i++
     date.setDate(date.getDate() + 1)
   
+  total = []
+  total.push totalSprintCards
   for day in days
     totalSprintCards -= day.done + day.addedDone
     totalSprintCards += day.added
-    day.total = totalSprintCards
-  console.log days
-  drawGraph(days)
+    total.push totalSprintCards
+  drawGraph(total)
 
 getCards = ->
   Trello.rest(
