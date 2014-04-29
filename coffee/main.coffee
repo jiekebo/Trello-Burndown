@@ -78,7 +78,7 @@ getCardsInSprint = (sprintStart, list, cards) ->
       sprintCards[card.id] = card
       continue
     for action in card.actions
-      if action.data.listBefore.id == list && sprintStart < new Date(action.date)
+      if (action.data.listBefore.id == list || action.data.listBefore.id == DOING_LIST) && sprintStart < new Date(action.date)
         card.sprint = "moved"
         if sprintCards[card.id]?
           continue
