@@ -20,7 +20,7 @@ var options = {
 
    // Live reload
   LIVE_RELOAD_PORT : 35729,
-  EXPRESS_PORT : 8080,
+  EXPRESS_PORT : 7070,
   EXPRESS_ROOT : "public"
 }
 

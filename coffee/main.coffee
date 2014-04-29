@@ -5,22 +5,10 @@ DOING_LIST = "5319d6c74a5040bb15f76857"
 ROADBLOCKED_LIST = "532ff09dddb9665821deda83"
 DONE_LIST = "5319d6c74a5040bb15f76858"
 
-START_DATE = new Date("2014-04-27")
+START_DATE = new Date("2014-04-29")
 END_DATE = new Date("2014-05-02")
 
 AUTORIZED = false
-
-Trello.authorize
-  interactive: true,
-  expiration: "never",
-  persist: true,
-  name: "your project name",
-  type: "popup",
-  scope: { read : true, write : true },
-  success: ->
-    AUTORIZED = true
-  error: ->
-    console.log "error!"
 
 handleError = ->
   console.log "Error"
@@ -82,6 +70,10 @@ getCardsInSprint = (sprintStart, list, cards) ->
   sprintCards = []
   for card in cards
     if card.idList == list
+      card.sprint = "remainder"
+      sprintCards[card.id] = card
+      continue
+    if card.idList == DOING_LIST
       card.sprint = "remainder"
       sprintCards[card.id] = card
       continue
@@ -159,4 +151,14 @@ getCards = ->
 $("#getCards").click ->
   getCards()
 
-getCards()
+Trello.authorize
+  interactive: true,
+  expiration: "never",
+  persist: true,
+  name: "your project name",
+  type: "popup",
+  scope: { read : true, write : false },
+  success: ->
+    getCards()
+  error: ->
+    console.log "error!"
