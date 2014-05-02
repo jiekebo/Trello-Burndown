@@ -4,6 +4,7 @@ SPRINT1_LIST = "534d1c9443a55d3e27a898a4"
 DOING_LIST = "5319d6c74a5040bb15f76857"
 ROADBLOCKED_LIST = "532ff09dddb9665821deda83"
 DONE_LIST = "5319d6c74a5040bb15f76858"
+PRESENTATION_DEMO_LIST = "53638b110a6cb7706be48bd6"
 
 START_DATE = new Date("2014-04-29")
 END_DATE = new Date("2014-05-02")
@@ -52,18 +53,6 @@ drawGraph = (data) ->
   graph.append("svg:path").attr("d", line(data))
 
   graph.append("svg:path").attr("d", line(idealData))
-
-
-$("#getLists").click ->
-  Trello.rest(
-    "get"
-    "/boards/#{BOARD}/lists"
-    (boards) ->
-      for board in boards
-        console.log board
-    () -> 
-      console.log "Error occurred"
-  )
 
 # Definition: cards moved from sprint after sprint start plus cards remaining in sprint
 getCardsInSprint = (sprintStart, list, cards) ->
@@ -118,7 +107,7 @@ calculateBurndown = (cards) ->
     for id, card of sprintCards
       for action in card.actions
         if date <= new Date(action.date) <= nextDate
-          if action.data.listAfter.id == DONE_LIST
+          if action.data.listAfter.id == DONE_LIST or action.data.listAfter.id == PRESENTATION_DEMO_LIST
             days[i].done += 1
 
     for id, card of addedCards
@@ -126,7 +115,7 @@ calculateBurndown = (cards) ->
         if date <= new Date(action.date) <= nextDate
           if action.data.listAfter.id == SPRINT1_LIST
             days[i].added += 1
-          if action.data.listAfter.id == DONE_LIST
+          if action.data.listAfter.id == DONE_LIST or action.data.listAfter.id == PRESENTATION_DEMO_LIST
             days[i].addedDone += 1
     i++
     date.setDate(date.getDate() + 1)
@@ -139,6 +128,17 @@ calculateBurndown = (cards) ->
     total.push totalSprintCards
   drawGraph(total)
 
+getLists = () ->
+  Trello.rest(
+    "get"
+    "/boards/#{BOARD}/lists"
+    (board) ->
+      for list in board
+        console.log list
+    () -> 
+      console.log "Error occurred"
+  )
+
 getCards = ->
   Trello.rest(
     "get"
@@ -148,9 +148,6 @@ getCards = ->
     handleError
   )
 
-$("#getCards").click ->
-  getCards()
-
 Trello.authorize
   interactive: true,
   expiration: "never",
@@ -159,6 +156,7 @@ Trello.authorize
   type: "popup",
   scope: { read : true, write : false },
   success: ->
+    getLists()
     getCards()
   error: ->
     console.log "error!"
